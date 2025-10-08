@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define PI 3.1415926535
+#define P2 PI/2
+#define P3 3*PI/2
 
 using namespace std;
 
@@ -88,10 +90,120 @@ void drawMap2D() {
     }
 }
 
+float dist(float ax, float ay, float bx, float by, float ang) {
+    return (sqrt ((bx-ax)*(bx-ax)) + (by-ay)*(by-ay));
+}
+void drawRays3D() {
+    int r,mx,my,mp,dof;
+    float rx,ry,ra,xo,yo;
+    ra=pa;
+    for (r = 0; r < 1; r++) {
+        //Check Horizontal Lines
+        dof=0;
+        float disH=1000000;
+        float hx=px;
+        float hy=py;
+        float aTan=-1/tan(ra);
+        if (ra>PI) { //looking downwards
+            ry = ((int(py)>>6)<<6)-0.0001;
+            rx = (py-ry) * aTan+px;
+            yo = -64;
+            xo = -yo*aTan;
+        }
+        if (ra<PI) { //looking upwards
+            ry = ((int(py)>>6)<<6)+64;
+            rx = (py-ry) * aTan+px;
+            yo = 64;
+            xo = -yo*aTan;
+        }
+        if (ra == 0 || abs(ra - PI) < 0.0001) { //looking straight left or right
+            rx=px;
+            ry=py;
+            dof=8;
+        }
+        while (dof < 8) {
+            mx = int(rx)>>6;
+            my = int(ry)>>6;
+            mp=my*mapX+mx;
+            if (mp > 0 && mp < mapX*mapY && map[mp] == 1) { //wall collision detection
+                hx=rx;
+                hy=ry;
+                disH=dist(px,py,hx,hy,ra);
+                dof=8;
+            }
+            else {
+                rx+=xo;
+                ry+=yo;
+                dof+=1;
+            }
+            /*glColor3f(0, 1, 0);
+            glLineWidth(1);
+            glBegin(GL_LINES);
+            glVertex2i(px,py);
+            glVertex2i(rx,ry);
+            glEnd();*/
+        }
+        //Check Vertical Lines
+        dof=0;
+        float disV=1000000;
+        float vx=px;
+        float vy=py;
+        float nTan=-tan(ra); //negative tangent
+        if (ra>P2 && ra<P3) { //looking left
+            rx = ((int(px)>>6)<<6)-0.0001;
+            ry = (px-rx) * nTan+py;
+            xo = -64;
+            yo = -xo*nTan;
+        }
+        if (ra<P2 || ra>P3) { //looking right
+            rx = ((int(px)>>6)<<6)+64;
+            ry = (px-rx) * nTan+py;
+            xo = 64;
+            yo = -xo*nTan;
+        }
+        if (ra == 0 || abs(ra - PI) < 0.0001) { //looking straight up or down
+            rx=px;
+            ry=py;
+            dof=8;
+        }
+        while (dof < 8) {
+            mx = int(rx)>>6;
+            my = int(ry)>>6;
+            mp=my*mapX+mx;
+            if (mp > 0 && mp < mapX*mapY && map[mp] == 1) { //wall collision detection
+                vx=rx;
+                vy=ry;
+                disV=dist(px,py,vx,vy,ra);
+                dof=8;
+            }
+            else {
+                rx+=xo;
+                ry+=yo;
+                dof+=1;
+            }
+        }
+        if (disV<disH) {
+            rx=vx;
+            ry=vy;
+        }
+        if (disH<disV) {
+            rx=hx;
+            ry=hy;
+        }
+        glColor3f(1, 0, 0);
+        glLineWidth(3);
+        glBegin(GL_LINES);
+        glVertex2i(px,py);
+        glVertex2i(rx,ry);
+        glEnd();
+    }
+}
+
 void display(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     drawMap2D();
     drawPlayer();
+    drawRays3D();
     glfwSwapBuffers(window);
 }
 
@@ -108,6 +220,7 @@ void render(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     drawMap2D();
     drawPlayer();
+    drawRays3D();
 }
 
 int main(int argc, char* argv[]){
