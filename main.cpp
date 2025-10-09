@@ -7,6 +7,8 @@
 #define PI 3.1415926535
 #define P2 PI/2
 #define P3 3*PI/2
+#define DR 0.0174533 //one degree in radians
+
 
 using namespace std;
 
@@ -91,13 +93,19 @@ void drawMap2D() {
 }
 
 float dist(float ax, float ay, float bx, float by, float ang) {
-    return (sqrt ((bx-ax)*(bx-ax)) + (by-ay)*(by-ay));
+    return sqrt ((bx-ax)*(bx-ax) + (by-ay)*(by-ay));
 }
 void drawRays3D() {
     int r,mx,my,mp,dof;
-    float rx,ry,ra,xo,yo;
-    ra=pa;
-    for (r = 0; r < 1; r++) {
+    float rx,ry,ra,xo,yo,disT;
+    ra=pa-DR*30;
+    if (ra < 0) {
+        ra+=2*PI;
+    }
+    if (ra > 2*PI) {
+        ra-=2*PI;
+    }
+    for (r = 0; r < 60; r++) {
         //Check Horizontal Lines
         dof=0;
         float disH=1000000;
@@ -185,25 +193,66 @@ void drawRays3D() {
         if (disV<disH) {
             rx=vx;
             ry=vy;
+            disT=disV;
+            glColor3f(0.9, 0, 0); //simple lighting
         }
         if (disH<disV) {
             rx=hx;
             ry=hy;
+            disT=disH;
+            glColor3f(0.7, 0, 0); //simple lighting
         }
-        glColor3f(1, 0, 0);
+
+        //glColor3f(1, 0, 0);
         glLineWidth(3);
         glBegin(GL_LINES);
         glVertex2i(px,py);
         glVertex2i(rx,ry);
         glEnd();
+        //Draw 3D Walls
+        //ca is used to resolve the fisheye effect
+        //the raycasters naturally cause
+        //as the rays to the further side of the player are naturally
+        //longer which causes the effect
+        float ca=pa-ra;
+        if (ca < 0) {
+            ca+=2*PI;
+        }
+        if (ca > 2*PI) {
+            ca-=2*PI;
+        }
+        disT=disT*cos(ca);
+        if (disT < 0.1f) {
+            disT = 0.1f;
+        }
+        //window is 320x160 px
+        //finding line height
+        float lineH=(mapS*320)/disT;
+        if (lineH>320) {
+            lineH=320;
+        }
+        float lineO=160-lineH/2; //line offset
+        glLineWidth(8);
+        glBegin(GL_LINES);
+        glVertex2i(r*8+530,lineO);
+        glVertex2i(r*8+530,lineH+lineO);
+        glEnd();
+
+        ra+=DR;
+        if (ra < 0) {
+            ra+=2*PI;
+        }
+        if (ra > 2*PI) {
+            ra-=2*PI;
+        }
     }
 }
 
 void display(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     drawMap2D();
-    drawPlayer();
     drawRays3D();
+    drawPlayer();
     glfwSwapBuffers(window);
 }
 
@@ -219,8 +268,8 @@ void init() {
 void render(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     drawMap2D();
-    drawPlayer();
     drawRays3D();
+    drawPlayer();
 }
 
 int main(int argc, char* argv[]){
