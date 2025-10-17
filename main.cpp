@@ -14,11 +14,22 @@ using namespace std;
 
 float px, py, pdx, pdy, pa; //player x and y, delta x, delta y, and player angle
 
+double frame1, frame2, fps;
+
+int mapX=8, mapY=8, mapS=64;
+int map[]=
+{
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 0, 1, 0, 0, 0, 0, 1,
+    1, 0, 1, 0, 0, 0, 0, 1,
+    1, 0, 1, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+};
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_W) {
-        px += pdx;
-        py += pdy;
-    }
     if (key == GLFW_KEY_A) {
         //px -= 5;
         pa -= 0.1;
@@ -28,10 +39,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         pdx = cos(pa) * 5;
         pdy = sin(pa) * 5;
     }
-    if (key == GLFW_KEY_S) {
-        px -= pdx;
-        py -= pdy;
-    }
     if (key == GLFW_KEY_D) {
         pa += 0.1;
         if (pa > 2 * PI) {
@@ -39,6 +46,55 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }
         pdx = cos(pa) * 5;
         pdy = sin(pa) * 5;
+    }
+    int xo = 0;
+    if (pdx<0) {
+        xo = -20;
+    }
+    else {
+        xo = 20;
+    }
+    int yo = 0;
+
+    if (pdy<0) {
+        yo = -20;
+    }
+    else {
+        yo = 20;
+    }
+
+    //setting up variables for collision detection
+    int ipx = px/64.0;
+    int ipx_add_xo = (px+xo)/64.0;
+    int ipx_sub_xo = (px-xo)/64.0;
+
+    int ipy = py/64.0;
+    int ipy_add_yo = (py+yo)/64.0;
+    int ipy_sub_yo = (py-yo)/64.0;
+
+    //frame2=glfwGetTime();
+    //fps = (frame2-frame1);
+    //frame1=glfwGetTime();
+
+    if (key == GLFW_KEY_W) {
+        if (map[ipy*mapX + ipx_add_xo] == 0){
+            px+=pdx*.01*fps;
+        }
+        if (map[ipy_add_yo*mapX + ipx] == 0) {
+            py+=pdy*.01*fps;
+        }
+        //px += pdx;
+        //py += pdy;
+    }
+    if (key == GLFW_KEY_S) {
+        if (map[ipy*mapX + ipx_sub_xo] == 0){
+            px-=pdx*.01*fps;
+        }
+        if (map[ipy_sub_yo*mapX + ipx] == 0) {
+            py-=pdy*.01*fps;
+        }
+        //px -= pdx;
+        //py -= pdy;
     }
 
 }
@@ -56,19 +112,6 @@ void drawPlayer() {
     glVertex2i(px + pdx*5, py+pdy*5);
     glEnd();
 }
-
-int mapX=8, mapY=8, mapS=64;
-int map[]=
-{
-    1, 1, 1, 1, 1, 1, 1, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1, 1,
-};
 
 void drawMap2D() {
     int xo, yo;
@@ -256,6 +299,10 @@ void display(GLFWwindow* window, int width, int height) {
     glfwSwapBuffers(window);
 }
 
+void resize(GLFWwindow* window, int w, int h) {
+    glfwSetWindowSize(window, 1024, 512);
+}
+
 void init() {
     glClearColor(0.3, 0.3, 0.3, 0);
     glOrtho(0, 1024, 512, 0, -1, 1);
@@ -280,9 +327,10 @@ int main(int argc, char* argv[]){
     }
 
     GLFWwindow* window = glfwCreateWindow(1024, 512, "RandomTower", nullptr, nullptr);
-
+    glfwSetWindowPos(window, 200, 20);
 
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
     glfwSetFramebufferSizeCallback(window, display);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
@@ -290,8 +338,16 @@ int main(int argc, char* argv[]){
 
     glfwSetKeyCallback(window, key_callback);
 
-    while (!glfwWindowShouldClose(window)) {
+    glfwSetWindowSizeCallback(window, resize);
 
+    frame1 = glfwGetTime();
+
+    while (!glfwWindowShouldClose(window)) {
+        frame2 = glfwGetTime();
+        double deltaTime = frame2 - frame1;
+        frame1 = frame2;
+
+        fps = 1.0/deltaTime;
         render();
         glfwSwapBuffers(window);
         glfwPollEvents();
