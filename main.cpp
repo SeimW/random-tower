@@ -11,6 +11,8 @@
 
 using namespace std;
 
+float FixAngle(float angle){if (angle > 359) {angle -= 360;} if (angle < 0) {angle+= 360;} return angle;}
+float degToRad(float angle){return angle*PI/180;}
 float px, py, pdx, pdy, pa; //player x and y, delta x, delta y, and player angle
 
 double frame1, frame2, fps;
@@ -167,18 +169,63 @@ int All_Textures[]= //all 32x32 textures
 };
 
 int mapX=8, mapY=8, mapS=64;
-int map[]=
+int mapW[]=
 {
-    1, 1, 1, 1, 1, 1, 1, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 3, 1, 1,
+    1, 0, 0, 1, 0, 0, 0, 1,
+    1, 0, 0, 4, 0, 2, 0, 1,
+    1, 1, 4, 1, 0, 0, 0, 1,
+    2, 0, 0, 0, 0, 0, 0, 1,
+    2, 0, 0, 0, 0, 1, 0, 1,
+    2, 0, 0, 0, 0, 0, 0, 1,
+    1, 1, 3, 1, 3, 1, 3, 1,
 };
 
+int mapF[]=
+{
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 1, 0, 0,
+    0, 0, 0, 0, 2, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 2, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+int mapC[]=
+{
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 1, 0, 0,
+    0, 0, 0, 0, 2, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 2, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+//Non-continuous input, such as pressing a button
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        if (key == GLFW_KEY_E) {
+            int xo = 0;
+            if (pdx < 0) {xo=-25;}
+            else {xo=25;}
+
+            int yo = 0;
+            if (pdy < 0) {yo=-25;}
+            else {yo=25;}
+
+            int ipx=px/64.0, ipx_add_xo=(px+xo)/64.0;
+            int ipy=py/64.0, ipy_add_yo=(py+yo)/64.0;
+
+            if (mapW[ipy_add_yo*mapX+ipx_add_xo]==4) {mapW[ipy_add_yo*mapX+ipx_add_xo]=0;}
+        }
+    }
+}
+
+//Continuous input, such as moving
 void handleInput(GLFWwindow* window) {
     if (glfwGetKey(window,GLFW_KEY_A) == GLFW_PRESS){
         //px -= 5;
@@ -215,20 +262,20 @@ void handleInput(GLFWwindow* window) {
     int ipy_sub_yo = (py-yo)/64.0;
 
     if (glfwGetKey(window,GLFW_KEY_W) == GLFW_PRESS) {
-        if (map[ipy*mapX + ipx_add_xo] == 0){
+        if (mapW[ipy*mapX + ipx_add_xo] == 0){
             px+=pdx*.0025*fps;
         }
-        if (map[ipy_add_yo*mapX + ipx] == 0) {
+        if (mapW[ipy_add_yo*mapX + ipx] == 0) {
             py+=pdy*.0025*fps;
         }
     }
 
     if (glfwGetKey(window,GLFW_KEY_S) == GLFW_PRESS) {
-        if (map[ipy*mapX + ipx_sub_xo] == 0){
-            px-=pdx*.003*fps;
+        if (mapW[ipy*mapX + ipx_sub_xo] == 0){
+            px-=pdx*.0025*fps;
         }
-        if (map[ipy_sub_yo*mapX + ipx] == 0) {
-            py-=pdy*.003*fps;
+        if (mapW[ipy_sub_yo*mapX + ipx] == 0) {
+            py-=pdy*.0025*fps;
         }
     }
 
@@ -252,7 +299,7 @@ void drawMap2D() {
     int xo, yo;
     for (int y = 0; y < mapY; y++) {
         for (int x = 0; x < mapX; x++) {
-            if (map[y * mapX + x] == 1) {
+            if (mapW[y * mapX + x] > 0) {
                 glColor3f(1, 1, 1);
             }
             else {
@@ -284,6 +331,7 @@ void drawRays3D() {
         ra-=2*PI;
     }
     for (r = 0; r < 60; r++) {
+        int virTex = 0, horTex = 0;
         //Check Horizontal Lines
         dof=0;
         float disH=1000000;
@@ -311,7 +359,8 @@ void drawRays3D() {
             mx = int(rx)>>6;
             my = int(ry)>>6;
             mp=my*mapX+mx;
-            if (mp > 0 && mp < mapX*mapY && map[mp] == 1) { //wall collision detection
+            if (mp > 0 && mp < mapX*mapY && mapW[mp] > 0) { //wall collision detection
+                horTex = mapW[mp]-1;
                 hx=rx;
                 hy=ry;
                 disH=dist(px,py,hx,hy,ra);
@@ -350,7 +399,8 @@ void drawRays3D() {
             mx = int(rx)>>6;
             my = int(ry)>>6;
             mp=my*mapX+mx;
-            if (mp > 0 && mp < mapX*mapY && map[mp] == 1) { //wall collision detection
+            if (mp > 0 && mp < mapX*mapY && mapW[mp] > 0) { //wall collision detection
+                virTex = mapW[mp]-1;
                 vx=rx;
                 vy=ry;
                 disV=dist(px,py,vx,vy,ra);
@@ -364,6 +414,7 @@ void drawRays3D() {
         }
         float shade = 1;
         if (disV<disH) {
+            horTex = virTex;
             shade = .5;
             rx=vx;
             ry=vy;
@@ -379,11 +430,14 @@ void drawRays3D() {
         }
 
         //glColor3f(1, 0, 0);
+
+        //lines for the rays on the map
         glLineWidth(2);
         glBegin(GL_LINES);
         glVertex2i(px,py);
         glVertex2i(rx,ry);
         glEnd();
+
         //Draw 3D Walls
         //ca is used to resolve the fisheye effect
         //the raycasters naturally cause
@@ -414,8 +468,9 @@ void drawRays3D() {
         float lineO=160-lineH/2; //line offset
 
         //setting up displaying individual pixels
+        //draws walls
         int y;
-        float ty = ty_off*ty_step;
+        float ty = ty_off*ty_step+horTex*32;
         float tx;
 
         if (shade == 1) {
@@ -431,14 +486,52 @@ void drawRays3D() {
 
         for (y = 0; y < lineH; y++){
             float c = All_Textures[(int)(ty)*32 + (int)(tx)] * shade;
-            glColor3f(c, c, c);
+            if (horTex==0) {glColor3f(c, c/2.0, c/2.0);} //check red
+            if (horTex==1) {glColor3f(c, c, c/2.0);} //brick yellow
+            if (horTex==2) {glColor3f(c/2.0, c/2.0, c);} //window blue
+            if (horTex==3) {glColor3f(c/2.0, c, c/2.0);} //door green
+            //glColor3f(c, c, c);
             glPointSize(8);
             glBegin(GL_POINTS);
             glVertex2i(r*8+530,y + lineO);
-            //glVertex2i(r*8+530,lineH+lineO);
             glEnd();
             ty+=ty_step;
         }
+
+        //draw floors
+        //still have slight warping...
+        for (y = lineO+lineH; y < 320; y++) {
+
+            float dy = y -(320/2.0), deg = ra;
+
+            tx = px/2.0f + cos(deg)*158*32/dy;
+            ty = py/2.0f + sin(deg)*158*32/dy;
+
+            if (tx < 0) tx = 0;
+            if (tx >= mapX * 32) tx = mapX * 32 - 1;
+            if (ty < 0) ty = 0;
+            if (ty >= mapY * 32) ty = mapY * 32 - 1;
+
+            if (dy == 0) dy = 0.0001f;
+
+            int Ftex = mapF[(int)(ty/32.0)*mapX+(int)(tx/32.0)]*32*32;
+            float c = All_Textures[((int)(ty)&31) * 32 + ((int)(tx)&31)+Ftex] * 0.7;
+            glColor3f(c/1.3, c/1.3, c);
+            glPointSize(8);
+            glBegin(GL_POINTS);
+            glVertex2i(r*8+530,y);
+            glEnd();
+
+            //draw ceiling
+            int Ctex = mapC[(int)(ty/32.0)*mapX+(int)(tx/32.0)]*32*32;
+            c = All_Textures[((int)(ty)&31) * 32 + ((int)(tx)&31)+Ctex] * 0.7;
+            glColor3f(c/2.0, c/1.2, c/2.0);
+            glPointSize(8);
+            glBegin(GL_POINTS);
+            glVertex2i(r*8+530,320-y);
+            glEnd();
+        }
+
 
         ra+=DR;
         if (ra < 0) {
@@ -496,6 +589,8 @@ int main(int argc, char* argv[]){
     init();
 
     glfwSetWindowSizeCallback(window, resize);
+
+    glfwSetKeyCallback(window, keyCallback);
 
     frame1 = glfwGetTime();
 
