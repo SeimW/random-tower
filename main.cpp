@@ -9,7 +9,6 @@
 #define P3 3*PI/2
 #define DR 0.0174533 //one degree in radians
 
-
 using namespace std;
 
 float px, py, pdx, pdy, pa; //player x and y, delta x, delta y, and player angle
@@ -180,18 +179,18 @@ int map[]=
     1, 1, 1, 1, 1, 1, 1, 1,
 };
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_A) {
+void handleInput(GLFWwindow* window) {
+    if (glfwGetKey(window,GLFW_KEY_A) == GLFW_PRESS){
         //px -= 5;
-        pa -= 0.1;
+        pa -= 0.025;
         if (pa < 0) {
             pa += 2*PI;
         }
         pdx = cos(pa) * 5;
         pdy = sin(pa) * 5;
     }
-    if (key == GLFW_KEY_D) {
-        pa += 0.1;
+    if (glfwGetKey(window,GLFW_KEY_D) == GLFW_PRESS) {
+        pa += 0.025;
         if (pa > 2 * PI) {
             pa -= 2*PI;
         }
@@ -199,20 +198,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         pdy = sin(pa) * 5;
     }
     int xo = 0;
-    if (pdx<0) {
-        xo = -20;
-    }
-    else {
-        xo = 20;
-    }
-    int yo = 0;
+    if (pdx<0) {xo = -20;}
+    else {xo = 20;}
 
-    if (pdy<0) {
-        yo = -20;
-    }
-    else {
-        yo = 20;
-    }
+    int yo = 0;
+    if (pdy<0) {yo = -20;}
+    else {yo = 20;}
 
     //setting up variables for collision detection
     int ipx = px/64.0;
@@ -223,29 +214,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     int ipy_add_yo = (py+yo)/64.0;
     int ipy_sub_yo = (py-yo)/64.0;
 
-    //frame2=glfwGetTime();
-    //fps = (frame2-frame1);
-    //frame1=glfwGetTime();
-
-    if (key == GLFW_KEY_W) {
+    if (glfwGetKey(window,GLFW_KEY_W) == GLFW_PRESS) {
         if (map[ipy*mapX + ipx_add_xo] == 0){
-            px+=pdx*.01*fps;
+            px+=pdx*.0025*fps;
         }
         if (map[ipy_add_yo*mapX + ipx] == 0) {
-            py+=pdy*.01*fps;
+            py+=pdy*.0025*fps;
         }
-        //px += pdx;
-        //py += pdy;
     }
-    if (key == GLFW_KEY_S) {
+
+    if (glfwGetKey(window,GLFW_KEY_S) == GLFW_PRESS) {
         if (map[ipy*mapX + ipx_sub_xo] == 0){
-            px-=pdx*.01*fps;
+            px-=pdx*.003*fps;
         }
         if (map[ipy_sub_yo*mapX + ipx] == 0) {
-            py-=pdy*.01*fps;
+            py-=pdy*.003*fps;
         }
-        //px -= pdx;
-        //py -= pdy;
     }
 
 }
@@ -338,12 +322,6 @@ void drawRays3D() {
                 ry+=yo;
                 dof+=1;
             }
-            /*glColor3f(0, 1, 0);
-            glLineWidth(1);
-            glBegin(GL_LINES);
-            glVertex2i(px,py);
-            glVertex2i(rx,ry);
-            glEnd();*/
         }
         //Check Vertical Lines
         dof=0;
@@ -401,7 +379,7 @@ void drawRays3D() {
         }
 
         //glColor3f(1, 0, 0);
-        glLineWidth(3);
+        glLineWidth(2);
         glBegin(GL_LINES);
         glVertex2i(px,py);
         glVertex2i(rx,ry);
@@ -437,18 +415,19 @@ void drawRays3D() {
 
         //setting up displaying individual pixels
         int y;
-        float ty=ty_off*ty_step;
+        float ty = ty_off*ty_step;
         float tx;
+
         if (shade == 1) {
             tx = (int)(rx/2.0)%32;
-            if (ra > 180) {tx = 31-tx;}
+            if (ra > 0 && ra < 180 * DR) {tx = 31-tx;}
         }
         else {
             tx= (int)(ry/2.0)%32;
-            if (ra>90 && ra<270) {tx=31-tx;}
+            if (ra > 90 * DR && ra < 270 * DR) {tx = 31-tx;}
         }
 
-        ty += 32;
+        //ty += 32;
 
         for (y = 0; y < lineH; y++){
             float c = All_Textures[(int)(ty)*32 + (int)(tx)] * shade;
@@ -516,13 +495,12 @@ int main(int argc, char* argv[]){
 
     init();
 
-    glfwSetKeyCallback(window, key_callback);
-
     glfwSetWindowSizeCallback(window, resize);
 
     frame1 = glfwGetTime();
 
     while (!glfwWindowShouldClose(window)) {
+        handleInput(window);
         frame2 = glfwGetTime();
         double deltaTime = frame2 - frame1;
         frame1 = frame2;
