@@ -331,6 +331,7 @@ void drawRays3D() {
         ra-=2*PI;
     }
     for (r = 0; r < 60; r++) {
+        float true_ra = ra;
         int virTex = 0, horTex = 0;
         //Check Horizontal Lines
         dof=0;
@@ -498,21 +499,20 @@ void drawRays3D() {
             ty+=ty_step;
         }
 
-        //draw floors
-        //still have slight warping...
+        //draw floors (and later ceilings!)
         for (y = lineO+lineH; y < 320; y++) {
 
-            float dy = y -(320/2.0), deg = ra;
+            float dy = y -(320/2.0), deg = true_ra, raFix = cos(pa-true_ra);
 
-            tx = px/2.0f + cos(deg)*158*32/dy;
-            ty = py/2.0f + sin(deg)*158*32/dy;
+            tx = px/2.0f + cos(deg)*158*32/dy/raFix;
+            ty = py/2.0f + sin(deg)*158*32/dy/raFix;
 
-            if (tx < 0) tx = 0;
+            /*if (tx < 0) tx = 0;
             if (tx >= mapX * 32) tx = mapX * 32 - 1;
             if (ty < 0) ty = 0;
             if (ty >= mapY * 32) ty = mapY * 32 - 1;
 
-            if (dy == 0) dy = 0.0001f;
+            if (dy == 0) dy = 0.0001f;*/
 
             int Ftex = mapF[(int)(ty/32.0)*mapX+(int)(tx/32.0)]*32*32;
             float c = All_Textures[((int)(ty)&31) * 32 + ((int)(tx)&31)+Ftex] * 0.7;
@@ -523,6 +523,7 @@ void drawRays3D() {
             glEnd();
 
             //draw ceiling
+            //also warping...
             int Ctex = mapC[(int)(ty/32.0)*mapX+(int)(tx/32.0)]*32*32;
             c = All_Textures[((int)(ty)&31) * 32 + ((int)(tx)&31)+Ctex] * 0.7;
             glColor3f(c/2.0, c/1.2, c/2.0);
