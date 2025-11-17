@@ -8,6 +8,9 @@
 #include "Textures/BrickTexture.ppm"
 #include "Textures/FirstTextures.ppm"
 #include "Textures/SkyTexture.ppm"
+#include "Textures/GameOverScreen.ppm"
+#include "Textures/StartScreen.ppm"
+#include "Textures/WinScreen.ppm"
 
 #define PI 3.1415926535
 #define P2 PI/2
@@ -21,6 +24,10 @@ float degToRad(float angle){return angle*PI/180;}
 float px, py, pdx, pdy, pa; //player x and y, delta x, delta y, and player angle
 
 double frame1, frame2, fps;
+
+int gameState=0;
+
+bool startingGame, clearedLevel;
 
 int mapX=8, mapY=8, mapS=64;
 int mapW[]=
@@ -75,6 +82,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             int ipy=py/64.0, ipy_add_yo=(py+yo)/64.0;
 
             if (mapW[ipy_add_yo*mapX+ipx_add_xo]==4) {mapW[ipy_add_yo*mapX+ipx_add_xo]=0;}
+            if (mapW[ipy_add_yo*mapX+ipx_add_xo]==6) {gameState = 3;}
+        }
+        if (key == GLFW_KEY_ENTER) {
+            if (!startingGame && gameState == 1) {
+                startingGame = true;
+            }
+
         }
     }
 }
@@ -448,9 +462,27 @@ void resize(GLFWwindow* window, int w, int h) {
     glfwSetWindowSize(window, 960, 640);
 }
 
+void StateScreens(int v) {
+    int x, y;
+    int *T;
+    if (v==1) {T=StartScreen;}
+    if (v==2) {T=WinScreen;}
+    if (v==3) {T=GameOverScreen;}
+    for (y = 0; y < 80; y++) {
+        for (x = 0; x < 120; x++) {
+            int pixel = (y*120+x)*3;
+            int red = T[pixel+0];
+            int green = T[pixel+1];
+            int blue = T[pixel+2];
+            glPointSize(8); glColor3ub(red, green, blue); glBegin(GL_POINTS); glVertex2i(x*8,y*8); glEnd();
+        }
+    }
+}
+
+
 void init() {
     glClearColor(0.3, 0.3, 0.3, 0);
-    glOrtho(0, 960, 640, 0, -1, 1);
+    //glOrtho(0, 960, 640, 0, -1, 1);
     px = 300;
     py = 300;
     pdx = cos(pa)*5;
@@ -460,20 +492,30 @@ void init() {
 void render(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //drawMap2D();
-    drawSky();
-    drawRays3D();
-    //drawPlayer();
-    //code for testing texture by adding a still image to top left of screen
-    /*int x, y;
-    for (y = 0; y < 32; y++) {
-        for (x = 0; x < 32; x++) {
-            int pixel = (y * 32+x) * 3;
-            int red = BrickTexture[pixel+0];
-            int green = BrickTexture[pixel+1];
-            int blue = BrickTexture[pixel+2];
-            glPointSize(8); glColor3ub(red, green, blue); glBegin(GL_POINTS); glVertex2i(x*8,y*8); glEnd();
+    if (gameState == 0) {init(); startingGame = false; gameState=1;} //initialize game
+    if (gameState == 1) {StateScreens(1); if (startingGame) {startingGame = false; clearedLevel = false; gameState=2; cout << "Starting!" << endl;}} //start screen
+    if (gameState == 2) { //game
+        drawSky();
+        drawRays3D();
+        if (clearedLevel) {
+            gameState == 3;
+            clearedLevel = false;
         }
-    }*/
+        //StateScreens(3);
+        //drawPlayer();
+        //code for testing texture by adding a still image to top left of screen
+        /*int x, y;
+        for (y = 0; y < 32; y++) {
+            for (x = 0; x < 32; x++) {
+                int pixel = (y * 32+x) * 3;
+                int red = BrickTexture[pixel+0];
+                int green = BrickTexture[pixel+1];
+                int blue = BrickTexture[pixel+2];
+                glPointSize(8); glColor3ub(red, green, blue); glBegin(GL_POINTS); glVertex2i(x*8,y*8); glEnd();
+            }
+        }*/
+    }
+    if (gameState == 3){StateScreens(2);}
 }
 
 int main(int argc, char* argv[]){
@@ -500,6 +542,7 @@ int main(int argc, char* argv[]){
     glfwSetFramebufferSizeCallback(window, display);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+    glOrtho(0, 960, 640, 0, -1, 1);
     init();
 
     glfwSetWindowSizeCallback(window, resize);
