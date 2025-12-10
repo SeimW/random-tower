@@ -11,6 +11,13 @@ target_include_directories(glad PUBLIC libs/glad/include)
 add_subdirectory(libs/glfw)
 
 #Executable
-add_executable(RandomTower main.cpp)
+add_executable(RandomTower main.cpp
+        Level.h
+)
 target_include_directories(RandomTower PUBLIC libs/glad/include libs/glfw/include)
 target_link_libraries(RandomTower glad glfw opengl32)
+
+set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
+set_target_properties(RandomTower PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}"
+)
